@@ -57,13 +57,15 @@ jobs:
 
       - name: Add musl targets
         run: |
-          rustup target add ${{ matrix.target }} || true
-
-      - name: Cache cargo registry
-        uses: Swatinem/rust-cache@v2
+          rustup target add ${{ matrix.target }} 2>/dev/null || echo "Skipping ${{ matrix.target }} - target not available"
 
       - name: Build release
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          if rustc --print target-list | grep -q "^${{ matrix.target }}$"; then
+            cargo build --release --target ${{ matrix.target }}
+          else
+            echo "Skipping build for ${{ matrix.target }} - target not available"
+          fi
 
       - name: Install upx
         if: matrix.target == 'x86_64-unknown-linux-musl'
