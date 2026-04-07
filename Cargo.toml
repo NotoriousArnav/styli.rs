@@ -1,0 +1,38 @@
+[package]
+name = "styli-rs"
+version = "0.1.0"
+edition = "2021"
+description = "Fast *nix wallpaper switcher with wallust color integration"
+authors = ["Arnav <arnav@styli.sh>"]
+license = "MIT"
+repository = "https://github.com/NotoriousArnav/styli.rs"
+rust-version = "1.75"
+keywords = ["wallpaper", "wallust", "pywal", "color-scheme", "linux", "unix"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "styli-rs"
+path = "src/main.rs"
+
+[lib]
+name = "styli_rs"
+path = "src/lib.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+image = "0.25"
+dirs = "5"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+opt-level = "z"
