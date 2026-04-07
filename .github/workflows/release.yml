@@ -45,10 +45,6 @@ jobs:
             arch: x86_64
           - target: i686-unknown-linux-musl
             arch: i686
-          - target: aarch64-unknown-linux-musleabi
-            arch: aarch64
-          - target: armv7-unknown-linux-musleabihf
-            arch: armv7
     steps:
       - uses: actions/checkout@v4
 
@@ -83,12 +79,6 @@ jobs:
           elif [ "${{ matrix.target }}" = "i686-unknown-linux-musl" ]; then
             cp target/${{ matrix.target }}/release/styli-rs dist/styli-rs_i686
             tar -czf styli-rs_i686.tar.gz -C dist .
-          elif [ "${{ matrix.target }}" = "aarch64-unknown-linux-musleabi" ]; then
-            cp target/${{ matrix.target }}/release/styli-rs dist/styli-rs_aarch64
-            tar -czf styli-rs_aarch64.tar.gz -C dist .
-          elif [ "${{ matrix.target }}" = "armv7-unknown-linux-musleabihf" ]; then
-            cp target/${{ matrix.target }}/release/styli-rs dist/styli-rs_armv7
-            tar -czf styli-rs_armv7.tar.gz -C dist .
           fi
 
       - name: Upload artifact
