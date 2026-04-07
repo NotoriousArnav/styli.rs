@@ -6,10 +6,7 @@ use tracing::info;
 pub async fn fetch_picsum(output_dir: &Path, resolution: &str) -> Result<PathBuf> {
     let (width, height) = parse_resolution(resolution);
 
-    let url = format!(
-        "https://picsum.photos/{}/{}",
-        width, height
-    );
+    let url = format!("https://picsum.photos/{}/{}", width, height);
 
     info!("Fetching from Picsum: {}x{}", width, height);
     download_file(&url, output_dir).await
