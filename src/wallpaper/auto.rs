@@ -22,14 +22,14 @@ pub fn detect() -> Backend {
         return Backend::Hyprland;
     }
 
-    if std::process::Command::new("aww")
+    if std::process::Command::new("awww")
         .arg("--version")
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
     {
-        info!("Auto-detected wallpaper backend: aww");
-        return Backend::Aww;
+        info!("Auto-detected wallpaper backend: awww");
+        return Backend::Awww;
     }
 
     if std::process::Command::new("gsettings")

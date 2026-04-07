@@ -4,17 +4,17 @@ use std::path::Path;
 use std::process::Command;
 use tracing::info;
 
-pub struct AwwBackend;
+pub struct AwwwBackend;
 
-impl AwwBackend {
+impl AwwwBackend {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl WallpaperBackend for AwwBackend {
+impl WallpaperBackend for AwwwBackend {
     fn name(&self) -> &'static str {
-        "aww"
+        "awww"
     }
 
     fn set_wallpaper(&self, wallpaper: &Path, bgtype: &BgType) -> Result<()> {
@@ -29,11 +29,11 @@ impl WallpaperBackend for AwwBackend {
         };
 
         info!(
-            "Setting aww wallpaper: {} (filter: {})",
+            "Setting awww wallpaper: {} (filter: {})",
             wallpaper_str, filter
         );
 
-        let output = Command::new("aww")
+        let output = Command::new("awww")
             .args([
                 "img",
                 &*wallpaper_str,
@@ -43,19 +43,19 @@ impl WallpaperBackend for AwwBackend {
                 "fade",
             ])
             .output()
-            .context("Failed to execute aww. Is aww running?")?;
+            .context("Failed to execute awww. Is awww running?")?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("aww failed: {}", stderr);
+            anyhow::bail!("awww failed: {}", stderr);
         }
 
-        info!("Wallpaper set successfully with aww");
+        info!("Wallpaper set successfully with awww");
         Ok(())
     }
 }
 
-impl Default for AwwBackend {
+impl Default for AwwwBackend {
     fn default() -> Self {
         Self::new()
     }
