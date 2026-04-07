@@ -13,6 +13,7 @@ mod wallpaper;
 
 use sources::picsum::fetch_picsum;
 use sources::reddit::{fetch_local, fetch_reddit};
+use sources::nasa::fetch_nasa;
 use wallpaper::auto;
 use wallpaper::awww::AwwwBackend;
 use wallpaper::custom::CustomBackend;
@@ -168,6 +169,7 @@ pub enum Source {
     Reddit,
     Deviantart,
     Local,
+    Nasa,
 }
 
 fn get_cache_dir() -> PathBuf {
@@ -376,6 +378,10 @@ async fn set_wallpaper(args: SetArgs) -> Result<()> {
                     .map(|h| format!("{}/Pictures/wallpapers", h))
                     .context("Could not find home directory")?;
                 fetch_local(&output_dir, std::path::Path::new(&local_dir)).await?
+            }
+            Source::Nasa => {
+                let api_key = std::env::var("NASA_API_KEY").unwrap_or_else(|_| "DEMO_KEY".to_string());
+                fetch_nasa(&output_dir, &api_key).await?
             }
         }
     };

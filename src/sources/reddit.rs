@@ -21,23 +21,41 @@ pub async fn fetch_reddit(
     };
 
     let url = format!(
-        "https://www.reddit.com/r/{}/{}.json?limit=100",
+        "https://www.reddit.com/r/{}/{}.json?limit=100&raw_json=1",
         subreddit, sort_param
     );
 
     info!("Fetching from Reddit: r/{}", subreddit);
 
     let client = reqwest::Client::builder()
-        .user_agent("styli-rs/0.1.0")
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .use_rustls_tls()
         .build()
         .context("Failed to build HTTP client")?;
 
     let response = client
         .get(&url)
         .header("Accept", "application/json")
+        .header("Accept-Language", "en-US,en;q=0.9")
+        .header("Cache-Control", "no-cache")
+        .header("Pragma", "no-cache")
+        .header("Sec-Ch-Ua", "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"")
+        .header("Sec-Ch-Ua-Mobile", "?0")
+        .header("Sec-Ch-Ua-Platform", "\"Linux\"")
+        .header("Sec-Fetch-Dest", "document")
+        .header("Sec-Fetch-Mode", "navigate")
+        .header("Sec-Fetch-Site", "none")
+        .header("Sec-Fetch-User", "?1")
+        .header("Upgrade-Insecure-Requests", "1")
         .send()
         .await
         .context("Failed to fetch Reddit posts")?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        anyhow::bail!("Reddit API error {}: {}", status, body);
+    }
 
     let json: serde_json::Value = response
         .json()
