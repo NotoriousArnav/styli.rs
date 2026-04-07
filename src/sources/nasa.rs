@@ -27,20 +27,32 @@ pub async fn fetch_nasa(output_dir: &Path, api_key: &str) -> Result<PathBuf> {
         .await
         .context("Failed to parse NASA response")?;
 
-    let media_type = json["media_type"].as_str().unwrap_or("image");
-
-    if media_type != "image" {
-        anyhow::bail!("Today's APOD is not an image (type: {})", media_type);
+    if let Some(error) = json.get("error") {
+        let msg = error["message"].as_str().unwrap_or("Unknown NASA API error");
+        anyhow::bail!("NASA API error: {}", msg);
     }
 
-    let image_url = if let Some(url) = json["url"].as_str() {
-        url.to_string()
-    } else if let Some(url) = json["hdurl"].as_str() {
-        url.to_string()
-    } else {
-        anyhow::bail!("No image URL found in NASA response");
-    };
+    let media_type = json["media_type"].as_str().unwrap_or("image");
 
-    info!("Downloading: {}", image_url);
-    download_file(&image_url, output_dir).await
+    if media_type == "video" {
+        if let Some(thumb) = json["thumbnail_url"].as_str() {
+            info!("APOD is video, using thumbnail: {}", thumb);
+            return download_file(thumb, output_dir).await;
+        }
+        anyhow::bail!("APOD is video with no thumbnail");
+    }
+
+    if media_type != "image" {
+        anyhow::bail!("APOD is not an image (type: {})", media_type);
+    }
+
+    let image_url = json["hdurl"]
+        .as_str()
+        .or_else(|| json["url"].as_str())
+        .map(String::from);
+
+    let url = image_url.context("No image URL in NASA response")?;
+
+    info!("Downloading: {}", url);
+    download_file(&url, output_dir).await
 }

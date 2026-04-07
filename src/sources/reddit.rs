@@ -18,7 +18,10 @@ pub async fn fetch_reddit(
         _ => "top",
     };
 
-    let url = format!("https://www.reddit.com/r/{}/{}.json", subreddit, sort_param);
+    let url = format!(
+        "https://www.reddit.com/r/{}/{}.json",
+        subreddit, sort_param
+    );
 
     info!("Fetching from Reddit: r/{}", subreddit);
 
@@ -36,8 +39,8 @@ pub async fn fetch_reddit(
         anyhow::bail!("curl failed: {}", String::from_utf8_lossy(&output.stderr));
     }
 
-    let json: serde_json::Value =
-        serde_json::from_slice(&output.stdout).context("Failed to parse Reddit response")?;
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .context("Failed to parse Reddit response")?;
 
     let posts = json["data"]["children"]
         .as_array()
@@ -50,12 +53,19 @@ pub async fn fetch_reddit(
     for post in posts {
         let post_data = &post["data"];
 
-        if let Some(url) = post_data["url_overridden_by_dest"].as_str() {
-            if !url.is_empty() {
-                valid_urls.push(url.to_string());
+        let post_hint = post_data["post_hint"].as_str();
+        
+        if post_hint == Some("image") {
+            if let Some(url) = post_data["url"].as_str() {
+                let url_lower = url.to_lowercase();
+                if url_lower.contains(".jpg") || url_lower.contains(".png") || url_lower.contains(".webp") || url_lower.contains(".gif") || url_lower.contains(".jpeg") {
+                    valid_urls.push(url.to_string());
+                }
             }
         }
     }
+
+    info!("Total valid URLs found (post_hint): {}", valid_urls.len());
 
     if valid_urls.is_empty() {
         anyhow::bail!("No valid images found on Reddit");
@@ -111,10 +121,6 @@ pub async fn fetch_local(output_dir: &Path, folder: &Path) -> Result<PathBuf> {
 
     std::fs::copy(selected.path(), &output_path).context("Failed to copy image")?;
 
-    info!(
-        "Copied: {} -> {}",
-        selected.path().display(),
-        output_path.display()
-    );
+    info!("Copied: {} -> {}", selected.path().display(), output_path.display());
     Ok(output_path)
 }
