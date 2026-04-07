@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::{Context, Result};
 use image::GenericImageView;
 use kmeans_colors::{get_kmeans, Kmeans, Sort};
@@ -71,7 +73,7 @@ pub fn run(options: WalOptions) -> Result<HashMap<String, String>> {
 
     let colors = extract_colors(&img)?;
 
-    let mut scheme = generate_palette(&colors, options.light);
+    let scheme = generate_palette(&colors, options.light);
 
     if options.preview {
         print_palette(&scheme);
@@ -246,8 +248,8 @@ fn getbg_dark(c: Srgb<f32>) -> (Srgb<f32>, Srgb<f32>) {
         (l - 60.0, l - 80.0)
     };
 
-    let color0_l = color0_l.max(0.0).min(100.0);
-    let bg_l = bg_l.max(0.0).min(100.0);
+    let color0_l = color0_l.clamp(0.0, 100.0);
+    let bg_l = bg_l.clamp(0.0, 100.0);
 
     let color0 = palette::Lab::new(color0_l, a, b);
     let bg = palette::Lab::new(bg_l, a, b);
@@ -274,8 +276,8 @@ fn getbg_light(c: Srgb<f32>) -> (Srgb<f32>, Srgb<f32>) {
         (l + 40.0, l + 20.0)
     };
 
-    let color0_l = color0_l.max(0.0).min(100.0);
-    let bg_l = bg_l.max(0.0).min(100.0);
+    let color0_l = color0_l.clamp(0.0, 100.0);
+    let bg_l = bg_l.clamp(0.0, 100.0);
 
     let color0 = palette::Lab::new(color0_l, a, b);
     let bg = palette::Lab::new(bg_l, a, b);
@@ -404,6 +406,7 @@ fn build_ansi_sequences(scheme: &HashMap<String, String>) -> String {
     seq
 }
 
+#[allow(dead_code)]
 fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
     let hex = hex.trim_start_matches('#');
     let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(0);

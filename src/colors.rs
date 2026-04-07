@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use std::path::Path;
 use tracing::info;
 
+#[allow(dead_code)]
 pub async fn generate_colors(wallpaper: &Path, light: bool) -> Result<()> {
     info!("Generating colors with wallust...");
 
@@ -32,6 +33,7 @@ pub async fn generate_colors(wallpaper: &Path, light: bool) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn preview_colors(wallpaper: &Path) -> Result<()> {
     info!("Previewing colors with wallust...");
 

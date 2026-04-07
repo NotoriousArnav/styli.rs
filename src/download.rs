@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::info;
 
-pub async fn download_file(url: &str, output_dir: &PathBuf) -> Result<PathBuf> {
+pub async fn download_file(url: &str, output_dir: &Path) -> Result<PathBuf> {
     info!("Downloading from: {}", url);
 
     let client = reqwest::Client::builder()

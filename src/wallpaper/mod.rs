@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use clap::ValueEnum;
 use std::path::Path;
@@ -36,7 +38,7 @@ pub enum Backend {
 }
 
 impl Backend {
-    pub fn from_str(s: &str) -> Self {
+    pub fn from_name(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "feh" => Backend::Feh,
             "nitrogen" => Backend::Nitrogen,
@@ -63,7 +65,7 @@ pub enum BgType {
 }
 
 impl BgType {
-    pub fn from_str(s: &str) -> Self {
+    pub fn from_name(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "center" => BgType::Center,
             "fill" => BgType::Fill,

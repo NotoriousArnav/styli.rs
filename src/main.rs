@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::{error, info};
 
 mod colors;
@@ -156,7 +156,7 @@ fn get_last_wallpaper() -> Option<PathBuf> {
     std::fs::read_to_string(cache_file).ok().map(PathBuf::from)
 }
 
-fn save_last_wallpaper(path: &PathBuf) -> Result<()> {
+fn save_last_wallpaper(path: &Path) -> Result<()> {
     let cache_dir = get_cache_dir();
     std::fs::create_dir_all(&cache_dir)?;
     std::fs::write(cache_dir.join("last_wallpaper"), path.to_string_lossy().as_ref())?;

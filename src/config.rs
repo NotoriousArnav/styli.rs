@@ -1,6 +1,8 @@
+#![allow(dead_code)]
+
 use serde::Deserialize;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct AppConfig {
@@ -88,16 +90,10 @@ impl Default for WallpaperConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct CustomConfig {
     #[serde(default)]
     pub command: Option<String>,
-}
-
-impl Default for CustomConfig {
-    fn default() -> Self {
-        Self { command: None }
-    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -184,7 +180,7 @@ impl Default for RedditConfig {
     }
 }
 
-pub fn load_config(path: &PathBuf) -> anyhow::Result<AppConfig> {
+pub fn load_config(path: &Path) -> anyhow::Result<AppConfig> {
     let content = fs::read_to_string(path)?;
     let config: AppConfig = toml::from_str(&content)?;
     Ok(config)

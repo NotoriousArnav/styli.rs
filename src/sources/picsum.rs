@@ -1,9 +1,9 @@
 use crate::download::download_file;
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::info;
 
-pub async fn fetch_picsum(output_dir: &PathBuf, resolution: &str) -> Result<PathBuf> {
+pub async fn fetch_picsum(output_dir: &Path, resolution: &str) -> Result<PathBuf> {
     let (width, height) = parse_resolution(resolution);
 
     let url = format!(
