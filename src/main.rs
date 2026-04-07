@@ -11,9 +11,9 @@ mod sources;
 mod wal;
 mod wallpaper;
 
+use sources::nasa::fetch_nasa;
 use sources::picsum::fetch_picsum;
 use sources::reddit::{fetch_local, fetch_reddit};
-use sources::nasa::fetch_nasa;
 use wallpaper::auto;
 use wallpaper::awww::AwwwBackend;
 use wallpaper::custom::CustomBackend;
@@ -110,7 +110,7 @@ struct WalArgs {
         long = "skip-reload",
         help = "Skip reloading desktop environments"
     )]
-        skip_reload: bool,
+    skip_reload: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -161,7 +161,11 @@ struct SetArgs {
     #[arg(long = "custom-cmd", help = "Custom wallpaper setter command")]
     custom_cmd: Option<String>,
 
-    #[arg(long = "notify", help = "Send notification when wallpaper is set", default_value = "false")]
+    #[arg(
+        long = "notify",
+        help = "Send notification when wallpaper is set",
+        default_value = "false"
+    )]
     notify: bool,
 }
 
@@ -370,7 +374,11 @@ async fn set_wallpaper(args: SetArgs) -> Result<()> {
                 anyhow::bail!("Unsplash source not implemented yet");
             }
             Source::Reddit => {
-                let subreddits = vec!["wallpapers".to_string(), "earthporn".to_string(), "nature".to_string()];
+                let subreddits = vec![
+                    "wallpapers".to_string(),
+                    "earthporn".to_string(),
+                    "nature".to_string(),
+                ];
                 fetch_reddit(&output_dir, &resolution_str, &subreddits, "hot").await?
             }
             Source::Deviantart => {
@@ -383,7 +391,8 @@ async fn set_wallpaper(args: SetArgs) -> Result<()> {
                 fetch_local(&output_dir, std::path::Path::new(&local_dir)).await?
             }
             Source::Nasa => {
-                let api_key = std::env::var("NASA_API_KEY").unwrap_or_else(|_| "DEMO_KEY".to_string());
+                let api_key =
+                    std::env::var("NASA_API_KEY").unwrap_or_else(|_| "DEMO_KEY".to_string());
                 fetch_nasa(&output_dir, &api_key).await?
             }
         }
@@ -465,8 +474,14 @@ async fn set_wallpaper(args: SetArgs) -> Result<()> {
         if let Err(e) = output {
             info!("notify-send failed: {:?}", e);
         } else if let Ok(o) = output {
-            info!("notify-send stdout: {:?}", String::from_utf8_lossy(&o.stdout));
-            info!("notify-send stderr: {:?}", String::from_utf8_lossy(&o.stderr));
+            info!(
+                "notify-send stdout: {:?}",
+                String::from_utf8_lossy(&o.stdout)
+            );
+            info!(
+                "notify-send stderr: {:?}",
+                String::from_utf8_lossy(&o.stderr)
+            );
         }
     }
 

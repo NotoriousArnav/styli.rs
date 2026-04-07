@@ -18,10 +18,7 @@ pub async fn fetch_reddit(
         _ => "top",
     };
 
-    let url = format!(
-        "https://www.reddit.com/r/{}/{}.json",
-        subreddit, sort_param
-    );
+    let url = format!("https://www.reddit.com/r/{}/{}.json", subreddit, sort_param);
 
     info!("Fetching from Reddit: r/{}", subreddit);
 
@@ -39,8 +36,8 @@ pub async fn fetch_reddit(
         anyhow::bail!("curl failed: {}", String::from_utf8_lossy(&output.stderr));
     }
 
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .context("Failed to parse Reddit response")?;
+    let json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).context("Failed to parse Reddit response")?;
 
     let posts = json["data"]["children"]
         .as_array()
@@ -49,10 +46,10 @@ pub async fn fetch_reddit(
     info!("Found {} posts", posts.len());
 
     let mut valid_urls: Vec<String> = Vec::new();
-    
+
     for post in posts {
         let post_data = &post["data"];
-        
+
         if let Some(url) = post_data["url_overridden_by_dest"].as_str() {
             if !url.is_empty() {
                 valid_urls.push(url.to_string());
@@ -71,7 +68,7 @@ pub async fn fetch_reddit(
         .as_nanos() as usize;
     let idx = seed % valid_urls.len();
     let url = &valid_urls[idx];
-    
+
     info!("Downloading random post #{}: {}", idx, url);
     download_file(url, output_dir).await
 }
@@ -87,7 +84,10 @@ pub async fn fetch_local(output_dir: &Path, folder: &Path) -> Result<PathBuf> {
             let path = e.path();
             if let Some(ext) = path.extension() {
                 let ext = ext.to_string_lossy().to_lowercase();
-                matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "gif" | "webp" | "bmp")
+                matches!(
+                    ext.as_str(),
+                    "jpg" | "jpeg" | "png" | "gif" | "webp" | "bmp"
+                )
             } else {
                 false
             }
@@ -111,6 +111,10 @@ pub async fn fetch_local(output_dir: &Path, folder: &Path) -> Result<PathBuf> {
 
     std::fs::copy(selected.path(), &output_path).context("Failed to copy image")?;
 
-    info!("Copied: {} -> {}", selected.path().display(), output_path.display());
+    info!(
+        "Copied: {} -> {}",
+        selected.path().display(),
+        output_path.display()
+    );
     Ok(output_path)
 }
