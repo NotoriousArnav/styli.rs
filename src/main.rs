@@ -19,7 +19,7 @@ use wallpaper::kde::KdeBackend;
 use wallpaper::xfce::XfceBackend;
 use wallpaper::sway::SwayBackend;
 use wallpaper::hyprland::HyprlandBackend;
-use wallpaper::swww::SwwwBackend;
+use wallpaper::aww::AwwBackend;
 use wallpaper::custom::CustomBackend;
 use wallpaper::auto;
 
@@ -105,7 +105,7 @@ fn create_backend(backend: Backend, custom_cmd: Option<&str>) -> Box<dyn Wallpap
         Backend::Xfce => Box::new(XfceBackend::new()),
         Backend::Sway => Box::new(SwayBackend::new()),
         Backend::Hyprland => Box::new(HyprlandBackend::new()),
-        Backend::Swww => Box::new(SwwwBackend::new()),
+        Backend::Aww => Box::new(AwwBackend::new()),
         Backend::Custom => {
             let cmd = custom_cmd.unwrap_or("feh --bg-{bgtype} {wallpaper}");
             Box::new(CustomBackend::new(cmd.to_string()))

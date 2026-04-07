@@ -4,17 +4,17 @@ use std::path::Path;
 use std::process::Command;
 use tracing::info;
 
-pub struct SwwwBackend;
+pub struct AwwBackend;
 
-impl SwwwBackend {
+impl AwwBackend {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl WallpaperBackend for SwwwBackend {
+impl WallpaperBackend for AwwBackend {
     fn name(&self) -> &'static str {
-        "swww"
+        "aww"
     }
 
     fn set_wallpaper(&self, wallpaper: &Path, bgtype: &BgType) -> Result<()> {
@@ -29,11 +29,11 @@ impl WallpaperBackend for SwwwBackend {
         };
 
         info!(
-            "Setting SWWW wallpaper: {} (filter: {})",
+            "Setting aww wallpaper: {} (filter: {})",
             wallpaper_str, filter
         );
 
-        let output = Command::new("swww")
+        let output = Command::new("aww")
             .args([
                 "img",
                 &*wallpaper_str,
@@ -43,19 +43,19 @@ impl WallpaperBackend for SwwwBackend {
                 "fade",
             ])
             .output()
-            .context("Failed to execute swww. Is swww running?")?;
+            .context("Failed to execute aww. Is aww running?")?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("swww failed: {}", stderr);
+            anyhow::bail!("aww failed: {}", stderr);
         }
 
-        info!("Wallpaper set successfully with SWWW");
+        info!("Wallpaper set successfully with aww");
         Ok(())
     }
 }
 
-impl Default for SwwwBackend {
+impl Default for AwwBackend {
     fn default() -> Self {
         Self::new()
     }

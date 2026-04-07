@@ -30,7 +30,7 @@ pub enum Backend {
     Xfce,
     Sway,
     Hyprland,
-    Swww,
+    Aww,
     Custom,
     Auto,
 }
@@ -45,7 +45,7 @@ impl Backend {
             "xfce" => Backend::Xfce,
             "sway" => Backend::Sway,
             "hyprland" => Backend::Hyprland,
-            "swww" => Backend::Swww,
+            "aww" => Backend::Aww,
             "custom" => Backend::Custom,
             "auto" => Backend::Auto,
             _ => Backend::Feh,
@@ -86,6 +86,7 @@ impl BgType {
 }
 
 pub mod auto;
+pub mod aww;
 pub mod custom;
 pub mod feh;
 pub mod gnome;
@@ -93,5 +94,4 @@ pub mod hyprland;
 pub mod kde;
 pub mod nitrogen;
 pub mod sway;
-pub mod swww;
 pub mod xfce;
