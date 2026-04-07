@@ -5,19 +5,17 @@ use tracing::info;
 
 pub async fn fetch_reddit(
     output_dir: &Path,
-    resolution: &str,
+    _resolution: &str,
     subreddits: &[String],
     sort: &str,
 ) -> Result<PathBuf> {
-    let (_width, _height) = parse_resolution(resolution);
-
     let default_sub = "wallpapers".to_string();
     let subreddit = subreddits.first().unwrap_or(&default_sub);
     let sort_param = match sort {
         "top" => "top",
         "rising" => "rising",
         "hot" => "hot",
-        _ => "hot",
+        _ => "top",
     };
 
     let url = format!(
@@ -30,7 +28,7 @@ pub async fn fetch_reddit(
     let output = std::process::Command::new("curl")
         .args([
             "-s", "-L",
-            "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
             "-H", "Accept: application/json",
             &url
         ])
@@ -53,38 +51,17 @@ pub async fn fetch_reddit(
     for post in posts {
         let post_data = &post["data"];
         
-        let is_image = post_data["post_hint"].as_str() == Some("image")
-            || post_data["url"]
-                .as_str()
-                .map(|u| u.ends_with(".jpg") || u.ends_with(".png") || u.ends_with(".webp"))
-                .unwrap_or(false);
+        let image_url = post_data["url_overridden_by_dest"]
+            .as_str()
+            .map(String::from);
 
-        if !is_image {
-            continue;
-        }
-
-        let image_url = post_data["url"].as_str().unwrap_or("");
-        
-        if image_url.contains("preview.reddit.com") || image_url.contains("i.redd.it") {
-            if let Some(media) = post_data["preview"]["images"].as_array() {
-                if let Some(source) = media[0]["source"].as_object() {
-                    let url = source["url"].as_str().unwrap_or("");
-                    let image_url = url.replace("&amp;", "&");
-                    
-                    info!("Downloading: {}", image_url);
-                    match download_file(&image_url, output_dir).await {
-                        Ok(path) => return Ok(path),
-                        Err(e) => {
-                            info!("Failed to download: {}", e);
-                            continue;
-                        }
-                    }
-                }
+        if let Some(url) = image_url {
+            if url.is_empty() {
+                continue;
             }
-        }
-
-        if image_url.ends_with(".jpg") || image_url.ends_with(".png") || image_url.ends_with(".webp") {
-            match download_file(image_url, output_dir).await {
+            
+            info!("Downloading: {}", url);
+            match download_file(&url, output_dir).await {
                 Ok(path) => return Ok(path),
                 Err(e) => {
                     info!("Failed to download: {}", e);
@@ -102,7 +79,7 @@ pub async fn fetch_local(output_dir: &Path, folder: &Path) -> Result<PathBuf> {
 
     let entries = std::fs::read_dir(folder).context("Failed to read local folder")?;
 
-    let mut images: Vec<_> = entries
+    let images: Vec<_> = entries
         .filter_map(|e| e.ok())
         .filter(|e| {
             let path = e.path();
@@ -134,15 +111,4 @@ pub async fn fetch_local(output_dir: &Path, folder: &Path) -> Result<PathBuf> {
 
     info!("Copied: {} -> {}", selected.path().display(), output_path.display());
     Ok(output_path)
-}
-
-fn parse_resolution(resolution: &str) -> (u32, u32) {
-    let parts: Vec<&str> = resolution.split('x').collect();
-    if parts.len() >= 2 {
-        let width = parts[0].parse().unwrap_or(1920);
-        let height = parts[1].parse().unwrap_or(1080);
-        (width, height)
-    } else {
-        (1920, 1080)
-    }
 }
