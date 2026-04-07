@@ -11,7 +11,17 @@ mod sources;
 mod wallpaper;
 
 use sources::picsum::fetch_picsum;
-use wallpaper::feh::set_feh;
+use wallpaper::{Backend, BgType, WallpaperBackend};
+use wallpaper::feh::FehBackend;
+use wallpaper::nitrogen::NitrogenBackend;
+use wallpaper::gnome::GnomeBackend;
+use wallpaper::kde::KdeBackend;
+use wallpaper::xfce::XfceBackend;
+use wallpaper::sway::SwayBackend;
+use wallpaper::hyprland::HyprlandBackend;
+use wallpaper::swww::SwwwBackend;
+use wallpaper::custom::CustomBackend;
+use wallpaper::auto;
 
 #[derive(Parser, Debug)]
 #[command(name = "styli-rs")]
@@ -25,7 +35,7 @@ struct Args {
     #[arg(short = 'r', long, help = "Wallpaper resolution", default_value = "auto")]
     resolution: Option<String>,
 
-    #[arg(long = "backend", help = "Wallpaper backend", default_value = "feh")]
+    #[arg(long = "backend", help = "Wallpaper backend", default_value = "auto")]
     backend: Backend,
 
     #[arg(short = 'm', long = "mode", help = "Background fill mode", default_value = "fill")]
@@ -48,6 +58,9 @@ struct Args {
 
     #[arg(short = 'o', long = "output", help = "Output directory for wallpaper")]
     output: Option<PathBuf>,
+
+    #[arg(long = "custom-cmd", help = "Custom wallpaper setter command")]
+    custom_cmd: Option<String>,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -57,41 +70,6 @@ pub enum Source {
     Reddit,
     Deviantart,
     Local,
-}
-
-#[derive(Debug, Clone, ValueEnum)]
-pub enum Backend {
-    Feh,
-    Nitrogen,
-    Gnome,
-    Kde,
-    Xfce,
-    Sway,
-    Hyprland,
-    Swww,
-    Custom,
-    Auto,
-}
-
-#[derive(Debug, Clone, ValueEnum)]
-pub enum BgType {
-    Center,
-    Fill,
-    Fit,
-    Stretch,
-    Tile,
-}
-
-impl BgType {
-    fn as_str(&self) -> &'static str {
-        match self {
-            BgType::Center => "center",
-            BgType::Fill => "fill",
-            BgType::Fit => "fit",
-            BgType::Stretch => "stretch",
-            BgType::Tile => "tile",
-        }
-    }
 }
 
 fn get_cache_dir() -> PathBuf {
@@ -118,6 +96,27 @@ fn save_last_wallpaper(path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
+fn create_backend(backend: Backend, custom_cmd: Option<&str>) -> Box<dyn WallpaperBackend> {
+    match backend {
+        Backend::Feh => Box::new(FehBackend::new()),
+        Backend::Nitrogen => Box::new(NitrogenBackend::new()),
+        Backend::Gnome => Box::new(GnomeBackend::new()),
+        Backend::Kde => Box::new(KdeBackend::new()),
+        Backend::Xfce => Box::new(XfceBackend::new()),
+        Backend::Sway => Box::new(SwayBackend::new()),
+        Backend::Hyprland => Box::new(HyprlandBackend::new()),
+        Backend::Swww => Box::new(SwwwBackend::new()),
+        Backend::Custom => {
+            let cmd = custom_cmd.unwrap_or("feh --bg-{bgtype} {wallpaper}");
+            Box::new(CustomBackend::new(cmd.to_string()))
+        }
+        Backend::Auto => {
+            let detected = auto::detect();
+            create_backend(detected, custom_cmd)
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
@@ -130,7 +129,7 @@ async fn main() -> Result<()> {
     let args = Args::parse();
     info!("styli-rs v0.1.0 starting...");
 
-    let config = if let Some(config_path) = &args.config {
+    let _config = if let Some(config_path) = &args.config {
         config::load_config(config_path)?
     } else {
         config::load_default_config().unwrap_or_default()
@@ -198,40 +197,17 @@ async fn main() -> Result<()> {
     if args.preview {
         info!("Preview mode - skipping wallpaper set");
     } else {
-        info!("Setting wallpaper with {:?}...", args.backend);
-        match args.backend {
-            Backend::Feh => {
-                set_feh(&wallpaper_path, args.bgtype.as_str())
-                    .context("Failed to set wallpaper with feh")?;
-            }
-            Backend::Nitrogen => {
-                anyhow::bail!("Nitrogen backend not implemented yet");
-            }
-            Backend::Gnome => {
-                anyhow::bail!("GNOME backend not implemented yet");
-            }
-            Backend::Kde => {
-                anyhow::bail!("KDE backend not implemented yet");
-            }
-            Backend::Xfce => {
-                anyhow::bail!("XFCE backend not implemented yet");
-            }
-            Backend::Sway => {
-                anyhow::bail!("Sway backend not implemented yet");
-            }
-            Backend::Hyprland => {
-                anyhow::bail!("Hyprland backend not implemented yet");
-            }
-            Backend::Swww => {
-                anyhow::bail!("SWWW backend not implemented yet");
-            }
-            Backend::Custom => {
-                anyhow::bail!("Custom backend not implemented yet");
-            }
-            Backend::Auto => {
-                set_feh(&wallpaper_path, args.bgtype.as_str())
-                    .context("Failed to set wallpaper with feh")?;
-            }
+        let backend = create_backend(args.backend, args.custom_cmd.as_deref());
+        
+        if backend.is_available() {
+            info!("Setting wallpaper with {:?}...", args.backend);
+            backend
+                .set_wallpaper(&wallpaper_path, &args.bgtype)
+                .context("Failed to set wallpaper")?;
+        } else {
+            error!("Backend {:?} is not available", args.backend);
+            error!("Try installing the required program or use --backend auto");
+            anyhow::bail!("Backend not available");
         }
     }
 
