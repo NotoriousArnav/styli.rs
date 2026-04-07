@@ -9,6 +9,7 @@ mod download;
 mod resolution;
 mod sources;
 mod wallpaper;
+mod wal;
 
 use sources::picsum::fetch_picsum;
 use wallpaper::{Backend, BgType, WallpaperBackend};
@@ -28,7 +29,70 @@ use wallpaper::auto;
 #[command(author = "Arnav <arnav@styli.sh>")]
 #[command(version = "0.1.0")]
 #[command(about = "Fast wallpaper switcher with wallust color integration", long_about = None)]
-struct Args {
+enum Cli {
+    #[command(about = "Generate colors from an image (wallust/pywal16 compatible)")]
+    Wal(WalArgs),
+    
+    #[command(about = "Set wallpaper and generate colors")]
+    Set(SetArgs),
+}
+
+#[derive(Parser, Debug)]
+struct WalArgs {
+    #[arg(help = "Image file or directory")]
+    image: Option<PathBuf>,
+
+    #[arg(short = 'i', long = "image", help = "Image file or directory")]
+    image_flag: Option<PathBuf>,
+
+    #[arg(short = 'l', long = "light", help = "Generate light color palette")]
+    light: bool,
+
+    #[arg(short = 's', long = "skip-terminal", help = "Skip setting terminal colors")]
+    skip_terminal: bool,
+
+    #[arg(short = 'n', long = "skip-wallpaper", help = "Skip wallpaper-related operations")]
+    skip_wallpaper: bool,
+
+    #[arg(short = 'q', long = "quiet", help = "Suppress output")]
+    quiet: bool,
+
+    #[arg(short = 'p', long = "preview", help = "Preview colors only")]
+    preview: bool,
+
+    #[arg(short = 'w', long = "overwrite-cache", help = "Force regeneration, overwrite cache")]
+    overwrite_cache: bool,
+
+    #[arg(short = 'b', long = "backend", help = "Color extraction backend")]
+    backend: Option<String>,
+
+    #[arg(short = 'c', long = "colorspace", help = "Colorspace algorithm")]
+    colorspace: Option<String>,
+
+    #[arg(long = "palette", help = "Palette scheme")]
+    palette: Option<String>,
+
+    #[arg(long = "saturation", help = "Saturation level (0-1)")]
+    saturation: Option<f32>,
+
+    #[arg(long = "cols16", help = "Use 16 color output (pywal16 compat)")]
+    cols16: bool,
+
+    #[arg(short = 'R', long = "restore", help = "Restore previous colorscheme")]
+    restore: bool,
+
+    #[arg(short = 'o', long = "other", help = "Run custom script after generation")]
+    other: Option<String>,
+
+    #[arg(short = 't', long = "skip-tty", help = "Skip TTY color setting")]
+    skip_tty: bool,
+
+    #[arg(short = 'e', long = "skip-reload", help = "Skip reloading desktop environments")]
+    skip_reload: bool,
+}
+
+#[derive(Parser, Debug)]
+struct SetArgs {
     #[arg(short = 's', long, help = "Wallpaper source", default_value = "picsum")]
     source: Source,
 
@@ -41,8 +105,11 @@ struct Args {
     #[arg(short = 'm', long = "mode", help = "Background fill mode", default_value = "fill")]
     bgtype: BgType,
 
-    #[arg(long, help = "Skip color generation")]
+    #[arg(long, help = "Skip color generation", alias = "no-colors")]
     no_colors: bool,
+
+    #[arg(long, help = "Color generation options (passed to wal engine)")]
+    colors: Option<String>,
 
     #[arg(long, help = "Generate light color palette")]
     light: bool,
@@ -117,6 +184,75 @@ fn create_backend(backend: Backend, custom_cmd: Option<&str>) -> Box<dyn Wallpap
     }
 }
 
+fn run_wal(args: WalArgs) -> Result<()> {
+    if args.restore {
+        info!("Restoring previous colorscheme...");
+        let seq_path = dirs::cache_dir()
+            .context("Could not find cache directory")?
+            .join("wal")
+            .join("sequences");
+        
+        if seq_path.exists() {
+            let sequences = std::fs::read_to_string(&seq_path)?;
+            if let Ok(pts_dir) = std::fs::read_dir("/dev/pts") {
+                for entry in pts_dir.flatten() {
+                    let path: std::path::PathBuf = entry.path();
+                    if let Ok(mut file) = std::fs::OpenOptions::new().write(true).open(&path) {
+                        use std::io::Write;
+                        let _ = file.write_all(sequences.as_bytes());
+                    }
+                }
+            }
+            info!("Colors restored successfully");
+        } else {
+            anyhow::bail!("No previous colorscheme found");
+        }
+        return Ok(());
+    }
+
+    let image = args.image.clone().or(args.image_flag.clone())
+        .context("No image provided. Use: styli-rs wal <image>")?;
+
+    if !image.exists() {
+        anyhow::bail!("Image file not found: {:?}", image);
+    }
+
+    let backend = match args.backend.as_deref() {
+        Some("kmeans") => wal::Backend::Kmeans,
+        Some("wal") => wal::Backend::Wal,
+        _ => wal::Backend::FastResize,
+    };
+
+    let colorspace = match args.colorspace.as_deref() {
+        Some("lab") => wal::Colorspace::Lab,
+        Some("lch") => wal::Colorspace::Lch,
+        _ => wal::Colorspace::Lab,
+    };
+
+    let palette = match args.palette.as_deref() {
+        Some("light") => wal::Palette::Light,
+        Some("dark16") => wal::Palette::Dark16,
+        _ => wal::Palette::Dark,
+    };
+
+    let options = wal::WalOptions {
+        image,
+        backend,
+        colorspace,
+        palette,
+        light: args.light,
+        saturation: 0.5,
+        skip_terminal: args.skip_terminal,
+        skip_wallpaper: args.skip_wallpaper,
+        quiet: args.quiet,
+        preview: args.preview,
+        overwrite_cache: args.overwrite_cache,
+    };
+
+    wal::run(options)?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
@@ -126,7 +262,21 @@ async fn main() -> Result<()> {
         )
         .init();
 
-    let args = Args::parse();
+    let cli = Cli::parse();
+
+    match cli {
+        Cli::Wal(args) => {
+            run_wal(args)?;
+        }
+        Cli::Set(args) => {
+            set_wallpaper(args).await?;
+        }
+    }
+
+    Ok(())
+}
+
+async fn set_wallpaper(args: SetArgs) -> Result<()> {
     info!("styli-rs v0.1.0 starting...");
 
     let _config = if let Some(config_path) = &args.config {
@@ -212,8 +362,23 @@ async fn main() -> Result<()> {
     }
 
     if !args.no_colors && !args.preview {
-        info!("Generating colors with wallust...");
-        if let Err(e) = colors::generate_colors(&wallpaper_path, args.light).await {
+        info!("Generating colors...");
+        
+        let wal_options = wal::WalOptions {
+            image: wallpaper_path.clone(),
+            backend: wal::Backend::FastResize,
+            colorspace: wal::Colorspace::Lab,
+            palette: if args.light { wal::Palette::Light } else { wal::Palette::Dark },
+            light: args.light,
+            saturation: 0.5,
+            skip_terminal: false,
+            skip_wallpaper: true,
+            quiet: false,
+            preview: false,
+            overwrite_cache: false,
+        };
+        
+        if let Err(e) = wal::run(wal_options) {
             error!("Failed to generate colors: {}", e);
             error!("Continuing without color generation...");
         }
@@ -221,7 +386,20 @@ async fn main() -> Result<()> {
 
     if args.preview {
         info!("Previewing colors...");
-        colors::preview_colors(&wallpaper_path).await?;
+        let wal_options = wal::WalOptions {
+            image: wallpaper_path.clone(),
+            backend: wal::Backend::FastResize,
+            colorspace: wal::Colorspace::Lab,
+            palette: wal::Palette::Dark,
+            light: false,
+            saturation: 0.5,
+            skip_terminal: true,
+            skip_wallpaper: true,
+            quiet: false,
+            preview: true,
+            overwrite_cache: false,
+        };
+        wal::run(wal_options)?;
     }
 
     info!("Done!");

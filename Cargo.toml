@@ -29,6 +29,10 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 image = "0.25"
 dirs = "5"
+kmeans_colors = "0.7"
+palette = "0.7"
+minijinja = "2"
+regex = "1"
 
 [profile.release]
 lto = true
