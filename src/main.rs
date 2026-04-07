@@ -110,7 +110,7 @@ struct WalArgs {
         long = "skip-reload",
         help = "Skip reloading desktop environments"
     )]
-    skip_reload: bool,
+        skip_reload: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -160,9 +160,12 @@ struct SetArgs {
 
     #[arg(long = "custom-cmd", help = "Custom wallpaper setter command")]
     custom_cmd: Option<String>,
+
+    #[arg(long = "notify", help = "Send notification when wallpaper is set", default_value = "false")]
+    notify: bool,
 }
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Parser, Debug, Clone, Copy, ValueEnum)]
 pub enum Source {
     Picsum,
     Unsplash,
@@ -452,5 +455,20 @@ async fn set_wallpaper(args: SetArgs) -> Result<()> {
     }
 
     info!("Done!");
+
+    info!("notify = {}", args.notify);
+    if args.notify {
+        info!("Sending notification...");
+        let output = std::process::Command::new("notify-send")
+            .args(["styli-rs", "Wallpaper set successfully"])
+            .output();
+        if let Err(e) = output {
+            info!("notify-send failed: {:?}", e);
+        } else if let Ok(o) = output {
+            info!("notify-send stdout: {:?}", String::from_utf8_lossy(&o.stdout));
+            info!("notify-send stderr: {:?}", String::from_utf8_lossy(&o.stderr));
+        }
+    }
+
     Ok(())
 }

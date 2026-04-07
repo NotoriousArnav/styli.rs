@@ -164,6 +164,8 @@ fn default_subreddits() -> Vec<String> {
         "wallpapers".to_string(),
         "earthporn".to_string(),
         "nature".to_string(),
+        "wlpz".to_string(),
+        "amoledbackgrounds".to_string(),
     ]
 }
 

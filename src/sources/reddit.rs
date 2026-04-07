@@ -48,30 +48,32 @@ pub async fn fetch_reddit(
 
     info!("Found {} posts", posts.len());
 
+    let mut valid_urls: Vec<String> = Vec::new();
+    
     for post in posts {
         let post_data = &post["data"];
         
-        let image_url = post_data["url_overridden_by_dest"]
-            .as_str()
-            .map(String::from);
-
-        if let Some(url) = image_url {
-            if url.is_empty() {
-                continue;
-            }
-            
-            info!("Downloading: {}", url);
-            match download_file(&url, output_dir).await {
-                Ok(path) => return Ok(path),
-                Err(e) => {
-                    info!("Failed to download: {}", e);
-                    continue;
-                }
+        if let Some(url) = post_data["url_overridden_by_dest"].as_str() {
+            if !url.is_empty() {
+                valid_urls.push(url.to_string());
             }
         }
     }
 
-    anyhow::bail!("No valid images found on Reddit")
+    if valid_urls.is_empty() {
+        anyhow::bail!("No valid images found on Reddit");
+    }
+
+    use std::time::SystemTime;
+    let seed = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as usize;
+    let idx = seed % valid_urls.len();
+    let url = &valid_urls[idx];
+    
+    info!("Downloading random post #{}: {}", idx, url);
+    download_file(url, output_dir).await
 }
 
 pub async fn fetch_local(output_dir: &Path, folder: &Path) -> Result<PathBuf> {
