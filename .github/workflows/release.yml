@@ -57,14 +57,16 @@ jobs:
 
       - name: Add musl targets
         run: |
-          rustup target add ${{ matrix.target }} 2>/dev/null || echo "Skipping ${{ matrix.target }} - target not available"
+          rustup target add "${{ matrix.target }}" 2>/dev/null || echo "Target may not be available"
 
       - name: Build release
         run: |
-          if rustc --print target-list | grep -q "^${{ matrix.target }}$"; then
-            cargo build --release --target ${{ matrix.target }}
+          TARGET="${{ matrix.target }}"
+          if rustc --print target-list | grep -q "^${TARGET}$"; then
+            cargo build --release --target "$TARGET"
           else
-            echo "Skipping build for ${{ matrix.target }} - target not available"
+            echo "Skipping $TARGET - target not available"
+            exit 0
           fi
 
       - name: Install upx
