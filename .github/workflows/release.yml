@@ -35,64 +35,38 @@ jobs:
 
   build:
     needs: test
-    name: Build ${{ matrix.target }}
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-musl
-            arch: x86_64
-            runner: ubuntu-latest
-          - target: i686-unknown-linux-musl
-            arch: i686
-            runner: ubuntu-latest
-          - target: aarch64-unknown-linux-musleabi
-            arch: aarch64
-            runner: [self-hosted, ARM64]
-          - target: armv7-unknown-linux-musleabihf
-            arch: armv7
-            runner: [self-hosted, ARM]
+    name: Build
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Add musl target
+        run: rustup target add x86_64-unknown-linux-musl
+
       - name: Build release
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target x86_64-unknown-linux-musl
 
       - name: Install upx
-        if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           sudo apt-get update && sudo apt-get install -y upx
 
       - name: Compress binary
-        if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: upx --best target/${{ matrix.target }}/release/styli-rs
+        run: upx --best target/x86_64-unknown-linux-musl/release/styli-rs
 
       - name: Generate tarball
         run: |
           mkdir dist
-          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-musl" ]; then
-            cp target/${{ matrix.target }}/release/styli-rs dist/styli-rs_x86_64
-            tar -czf styli-rs_x86_64.tar.gz -C dist .
-          elif [ "${{ matrix.target }}" = "i686-unknown-linux-musl" ]; then
-            cp target/${{ matrix.target }}/release/styli-rs dist/styli-rs_i686
-            tar -czf styli-rs_i686.tar.gz -C dist .
-          elif [ "${{ matrix.target }}" = "aarch64-unknown-linux-musleabi" ]; then
-            cp target/${{ matrix.target }}/release/styli-rs dist/styli-rs_aarch64
-            tar -czf styli-rs_aarch64.tar.gz -C dist .
-          elif [ "${{ matrix.target }}" = "armv7-unknown-linux-musleabihf" ]; then
-            cp target/${{ matrix.target }}/release/styli-rs dist/styli-rs_armv7
-            tar -czf styli-rs_armv7.tar.gz -C dist .
-          fi
+          cp target/x86_64-unknown-linux-musl/release/styli-rs dist/styli-rs_x86_64
+          tar -czf styli-rs_x86_64.tar.gz -C dist .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: styli-rs_${{ matrix.arch }}
-          path: '*.tar.gz'
+          name: styli-rs_x86_64
+          path: styli-rs_x86_64.tar.gz
 
   release:
     needs: build
