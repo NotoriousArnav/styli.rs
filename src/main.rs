@@ -12,6 +12,7 @@ mod wal;
 mod wallpaper;
 
 use sources::picsum::fetch_picsum;
+use sources::reddit::{fetch_local, fetch_reddit};
 use wallpaper::auto;
 use wallpaper::awww::AwwwBackend;
 use wallpaper::custom::CustomBackend;
@@ -364,13 +365,17 @@ async fn set_wallpaper(args: SetArgs) -> Result<()> {
                 anyhow::bail!("Unsplash source not implemented yet");
             }
             Source::Reddit => {
-                anyhow::bail!("Reddit source not implemented yet");
+                let subreddits = vec!["wallpapers".to_string(), "earthporn".to_string(), "nature".to_string()];
+                fetch_reddit(&output_dir, &resolution_str, &subreddits, "hot").await?
             }
             Source::Deviantart => {
                 anyhow::bail!("DeviantArt source not implemented yet");
             }
             Source::Local => {
-                anyhow::bail!("Local source not implemented yet");
+                let local_dir = std::env::var("HOME")
+                    .map(|h| format!("{}/Pictures/wallpapers", h))
+                    .context("Could not find home directory")?;
+                fetch_local(&output_dir, std::path::Path::new(&local_dir)).await?
             }
         }
     };

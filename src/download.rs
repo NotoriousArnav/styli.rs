@@ -16,11 +16,14 @@ pub async fn download_file(url: &str, output_dir: &Path) -> Result<PathBuf> {
         .await
         .context("Failed to send HTTP request")?;
 
+    download_response(response, output_dir).await
+}
+
+async fn download_response(response: reqwest::Response, output_dir: &Path) -> Result<PathBuf> {
     if !response.status().is_success() {
         anyhow::bail!(
-            "HTTP request failed with status {}: {}",
-            response.status(),
-            url
+            "HTTP request failed with status {}",
+            response.status()
         );
     }
 
