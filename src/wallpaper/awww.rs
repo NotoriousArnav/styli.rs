@@ -17,31 +17,13 @@ impl WallpaperBackend for AwwwBackend {
         "awww"
     }
 
-    fn set_wallpaper(&self, wallpaper: &Path, bgtype: &BgType) -> Result<()> {
+    fn set_wallpaper(&self, wallpaper: &Path, _bgtype: &BgType) -> Result<()> {
         let wallpaper_str = wallpaper.to_string_lossy();
 
-        let filter = match bgtype {
-            BgType::Center => "center",
-            BgType::Fill => "crop",
-            BgType::Fit => "fit",
-            BgType::Stretch => "stretch",
-            BgType::Tile => "tile",
-        };
-
-        info!(
-            "Setting awww wallpaper: {} (filter: {})",
-            wallpaper_str, filter
-        );
+        info!("Setting awww wallpaper: {}", wallpaper_str);
 
         let output = Command::new("awww")
-            .args([
-                "img",
-                &*wallpaper_str,
-                "--filter",
-                filter,
-                "--transition-type",
-                "fade",
-            ])
+            .args(["img", &*wallpaper_str])
             .output()
             .context("Failed to execute awww. Is awww running?")?;
 
