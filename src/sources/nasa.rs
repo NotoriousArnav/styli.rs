@@ -28,7 +28,9 @@ pub async fn fetch_nasa(output_dir: &Path, api_key: &str) -> Result<PathBuf> {
         .context("Failed to parse NASA response")?;
 
     if let Some(error) = json.get("error") {
-        let msg = error["message"].as_str().unwrap_or("Unknown NASA API error");
+        let msg = error["message"]
+            .as_str()
+            .unwrap_or("Unknown NASA API error");
         anyhow::bail!("NASA API error: {}", msg);
     }
 
